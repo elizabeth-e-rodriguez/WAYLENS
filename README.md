@@ -1,10 +1,10 @@
-# WAYPOINT
-WAYPOINT is a HUD-based smart sunglasses prototype for cycling and hiking. It displays navigation, speed, and distance using a transparent OLED inside the glasses, paired with an Android app that handles GPS, routing, and trail selection for hands-free outdoor navigation.
+# WAYLENS
+WAYLENS is a HUD-based smart sunglasses prototype for cycling and hiking. It displays navigation, speed, and distance using a transparent OLED inside the glasses, paired with an Android app that handles GPS, routing, and trail selection for hands-free outdoor navigation.
 
 ---
 ## Project Overview
 
-WAYPOINT is made up of two main parts:
+WAYLENS is made up of two main parts:
 
 - **Smart Glasses (Hardware)**
   - Uses an ESP32-S3 microcontroller and a transparent OLED display
