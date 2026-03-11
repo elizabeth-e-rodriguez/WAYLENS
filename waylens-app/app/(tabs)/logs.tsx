@@ -1,8 +1,9 @@
-import { StyleSheet, View } from "react-native";
+import React from "react";
+import { StyleSheet, View, Pressable } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
-function Card({
+function MetricCard({
   title,
   value,
   hint,
@@ -25,41 +26,85 @@ function Card({
 }
 
 export default function LogsScreen() {
+  const hasLogs = false; // wire to real logs later
+
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Logs</ThemedText>
-      <ThemedText style={styles.sub}>
-        Under construction 🚧 Activity history + exports will be added soon.
-      </ThemedText>
-
-      <View style={styles.grid}>
-        <Card title="Recent Activity" value="No logs yet" hint="Your rides/hikes will appear here" />
-        <Card title="Last Alert" value="—" hint="Hazards / speed / battery alerts later" />
-        <Card title="Total Distance" value="—" hint="Weekly / monthly totals later" />
-        <Card title="Duration" value="—" hint="Time tracking later" />
+      <View style={styles.headerRow}>
+        <ThemedText type="title">Logs</ThemedText>
+        <Pressable
+          onPress={() => {
+            // later: export to CSV/PDF
+          }}
+          style={styles.headerBtn}
+        >
+          <ThemedText type="subtitle">Export</ThemedText>
+        </Pressable>
       </View>
 
-      <Card
+      <ThemedText style={styles.sub}>
+        Session history, alerts, and exports will appear here.
+      </ThemedText>
+
+      {!hasLogs ? (
+        <ThemedView style={styles.empty}>
+          <ThemedText type="subtitle">No activity yet</ThemedText>
+          <ThemedText style={styles.emptySub}>
+            Start a ride to generate your first session log.
+          </ThemedText>
+        </ThemedView>
+      ) : null}
+
+      <View style={styles.grid}>
+        <MetricCard title="Recent Activity" value={hasLogs ? "1 Ride" : "—"} hint="Last 7 days" />
+        <MetricCard title="Last Alert" value="—" hint="Safety alerts later" />
+        <MetricCard title="Total Distance" value="—" hint="Weekly totals later" />
+        <MetricCard title="Duration" value="—" hint="Time tracking later" />
+      </View>
+
+      <MetricCard
         fullWidth
-        title="Export"
-        value="Coming soon"
-        hint="Export logs to CSV/PDF and share your session summaries."
+        title="Export Formats"
+        value="CSV / PDF"
+        hint="Export session summaries for sharing and reports."
       />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 18, gap: 10 },
-  sub: { opacity: 0.75, marginBottom: 8 },
+  container: { flex: 1, padding: 18, gap: 12 },
+  sub: { opacity: 0.8, fontSize: 13 },
+
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(120,120,120,0.12)",
+  },
+
+  empty: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(120,120,120,0.12)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  emptySub: { opacity: 0.75, fontSize: 13 },
+
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
 
   card: {
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.25)",
+    borderColor: "rgba(120,120,120,0.12)",
+    backgroundColor: "transparent",
   },
   cardHalf: { width: "48%" },
   cardFull: { width: "100%" },
