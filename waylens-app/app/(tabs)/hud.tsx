@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, Pressable, TextInput, Alert } from "react-native";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { StyleSheet, View, Pressable, TextInput, Alert, Text, ScrollView } from "react-native";
 import { useRideStore } from "@/components/ride/rideStore";
 import { WsHudLink } from "@/components/wifi/WsHudLink";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 function isValidIp(ip: string) {
   const parts = ip.trim().split(".");
@@ -15,6 +15,9 @@ function isValidIp(ip: string) {
 }
 
 export default function HudScreen() {
+  const scheme = useColorScheme();
+  const c = Colors[scheme ?? "light"];
+
   const ride = useRideStore();
   const linkRef = useRef<WsHudLink | null>(null);
 
@@ -41,6 +44,7 @@ export default function HudScreen() {
 
   useEffect(() => {
     if (!connected) return;
+
     const t = setInterval(() => {
       try {
         linkRef.current?.sendJson(packet);
@@ -49,17 +53,19 @@ export default function HudScreen() {
         setError(String(e?.message ?? e));
       }
     }, 250);
+
     return () => clearInterval(t);
   }, [connected, packet]);
 
   const connect = () => {
     if (!isValidIp(ip)) {
-      Alert.alert("Invalid IP", "Please enter a valid IPv4 address (e.g. 192.168.0.100).");
+      Alert.alert("Invalid IP", "Enter a valid IPv4 address");
       return;
     }
 
     setError(null);
     const link = new WsHudLink();
+
     try {
       link.connect(ip.trim(), 81);
       linkRef.current = link;
@@ -78,15 +84,40 @@ export default function HudScreen() {
     }
   };
 
-  return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">HUD (Wi-Fi)</ThemedText>
-      <ThemedText style={styles.sub}>
-        Hotspot the phone → ESP32 joins → app streams HUD packets over WebSocket.
-      </ThemedText>
+  const sendOnce = () => {
+    try {
+      linkRef.current?.sendJson(packet);
+      setLastSentAt(Date.now());
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+    }
+  };
 
-      <ThemedView style={styles.card}>
-        <ThemedText type="subtitle">ESP32 IP</ThemedText>
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.title, { color: c.text }]}>HUD</Text>
+
+      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+        <View
+          style={[
+            styles.statusPill,
+            {
+              backgroundColor: connected ? c.tintSoft : c.surface,
+              borderColor: connected ? c.tint : c.border,
+            },
+          ]}
+        >
+          <Text style={[styles.statusText, { color: connected ? c.tint : c.muted }]}>
+            {connected ? "Connected" : "Disconnected"}
+          </Text>
+        </View>
+
+        <Text style={[styles.label, { color: c.text }]}>ESP32 IP</Text>
+
         <TextInput
           value={ip}
           onChangeText={(t) => {
@@ -94,107 +125,130 @@ export default function HudScreen() {
             setError(null);
           }}
           placeholder="192.168.x.x"
+          placeholderTextColor={c.muted}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="numbers-and-punctuation"
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: c.surface,
+              borderColor: c.border,
+              color: c.text,
+            },
+          ]}
         />
-        <ThemedText style={styles.hint}>Check the Arduino Serial Monitor for the device IP.</ThemedText>
 
         <View style={styles.row}>
           <Pressable
             onPress={() => (connected ? disconnect() : connect())}
-            style={[styles.btn, connected ? styles.btnConnected : styles.btnPrimary]}
-            accessibilityLabel={connected ? "Disconnect from HUD" : "Connect to HUD"}
+            style={[styles.primaryBtn, { backgroundColor: connected ? c.danger : c.tint }]}
           >
-            <ThemedText type="subtitle">{connected ? "Disconnect" : "Connect"}</ThemedText>
+            <Text style={styles.primaryBtnText}>{connected ? "Disconnect" : "Connect"}</Text>
           </Pressable>
 
           <Pressable
-            onPress={() => {
-              // quick test: send one packet manually
-              try {
-                linkRef.current?.sendJson(packet);
-                setLastSentAt(Date.now());
-              } catch (e: any) {
-                setError(String(e?.message ?? e));
-              }
-            }}
-            style={styles.btnGhost}
+            onPress={sendOnce}
+            style={[
+              styles.secondaryBtn,
+              { backgroundColor: c.surface, borderColor: c.border, opacity: connected ? 1 : 0.5 },
+            ]}
             disabled={!connected}
           >
-            <ThemedText type="subtitle">Send Once</ThemedText>
+            <Text style={[styles.secondaryBtnText, { color: c.text }]}>Send Once</Text>
           </Pressable>
         </View>
 
-        <View style={styles.statusRow}>
-          <ThemedText type="subtitle">Status:</ThemedText>
-          <ThemedText style={{ marginLeft: 8 }}>
-            {connected ? "Connected" : "Disconnected"}
-          </ThemedText>
-        </View>
+        {lastSentAt ? (
+          <Text style={[styles.meta, { color: c.muted }]}>
+            Last sync {new Date(lastSentAt).toLocaleTimeString()}
+          </Text>
+        ) : null}
 
-        <ThemedText style={styles.packet}>Packet: {JSON.stringify(packet)}</ThemedText>
-        <ThemedText style={styles.small}>
-          Last sent: {lastSentAt ? new Date(lastSentAt).toLocaleTimeString() : "—"}
-        </ThemedText>
-        {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-      </ThemedView>
-
-      <ThemedText style={styles.sub}>
-        When connected, open the Arduino Serial Monitor — the ESP32 should print incoming JSON.
-      </ThemedText>
-    </ThemedView>
+        {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 18, gap: 12 },
-  sub: { opacity: 0.8 },
-
-  row: { flexDirection: "row", gap: 10, marginTop: 12 },
-  statusRow: { marginTop: 10, flexDirection: "row", alignItems: "center" },
-
-  btn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
+  scrollContent: {
+    padding: 18,
+    gap: 14,
+    paddingBottom: 120,
   },
-  btnPrimary: {
-    backgroundColor: "rgba(0,122,255,0.95)",
-  },
-  btnConnected: {
-    backgroundColor: "rgba(200,20,60,0.9)",
-  },
-  btnGhost: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
   },
 
   card: {
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.08)",
-    backgroundColor: "transparent",
+    padding: 18,
+    gap: 14,
   },
-  input: {
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
-    color: "white",
-    marginTop: 8,
-  },
-  hint: { opacity: 0.7, fontSize: 12 },
 
-  packet: { opacity: 0.8, fontSize: 12, marginTop: 8 },
-  small: { opacity: 0.6, fontSize: 12, marginTop: 4 },
-  error: { color: "#ff6666", marginTop: 6, fontSize: 13 },
+  statusPill: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  input: {
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+    fontSize: 15,
+  },
+
+  row: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  primaryBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 18,
+    alignItems: "center",
+  },
+  primaryBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+
+  secondaryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryBtnText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  meta: {
+    fontSize: 13,
+  },
+  error: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });

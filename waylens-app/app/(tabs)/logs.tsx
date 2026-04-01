@@ -1,114 +1,151 @@
 import React from "react";
-import { StyleSheet, View, Pressable } from "react-native";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { StyleSheet, View, Pressable, Text } from "react-native";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 function MetricCard({
   title,
   value,
   hint,
   fullWidth,
+  c,
 }: {
   title: string;
   value: string;
   hint?: string;
   fullWidth?: boolean;
+  c: any;
 }) {
   return (
-    <ThemedView style={[styles.card, fullWidth ? styles.cardFull : styles.cardHalf]}>
-      <ThemedText type="subtitle">{title}</ThemedText>
-      <ThemedText type="title" style={styles.value}>
-        {value}
-      </ThemedText>
-      {hint ? <ThemedText style={styles.hint}>{hint}</ThemedText> : null}
-    </ThemedView>
+    <View
+      style={[
+        styles.card,
+        fullWidth ? styles.cardFull : styles.cardHalf,
+        { backgroundColor: c.card, borderColor: c.border },
+      ]}
+    >
+      <Text style={[styles.cardTitle, { color: c.muted }]}>{title}</Text>
+      <Text style={[styles.cardValue, { color: c.text }]}>{value}</Text>
+      {hint ? <Text style={[styles.cardHint, { color: c.muted }]}>{hint}</Text> : null}
+    </View>
   );
 }
 
 export default function LogsScreen() {
-  const hasLogs = false; // wire to real logs later
+  const scheme = useColorScheme();
+  const c = Colors[scheme ?? "light"];
+  const hasLogs = false;
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
       <View style={styles.headerRow}>
-        <ThemedText type="title">Logs</ThemedText>
-        <Pressable
-          onPress={() => {
-            // later: export to CSV/PDF
-          }}
-          style={styles.headerBtn}
-        >
-          <ThemedText type="subtitle">Export</ThemedText>
+        <Text style={[styles.title, { color: c.text }]}>Logs</Text>
+
+        <Pressable style={[styles.headerBtn, { backgroundColor: c.card, borderColor: c.border }]}>
+          <Text style={[styles.headerBtnText, { color: c.tint }]}>Export</Text>
         </Pressable>
       </View>
 
-      <ThemedText style={styles.sub}>
-        Session history, alerts, and exports will appear here.
-      </ThemedText>
-
       {!hasLogs ? (
-        <ThemedView style={styles.empty}>
-          <ThemedText type="subtitle">No activity yet</ThemedText>
-          <ThemedText style={styles.emptySub}>
-            Start a ride to generate your first session log.
-          </ThemedText>
-        </ThemedView>
+        <View style={[styles.empty, { backgroundColor: c.card, borderColor: c.border }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: c.tintSoft }]}>
+            <Text style={[styles.emptyIconText, { color: c.tint }]}>⏱</Text>
+          </View>
+          <Text style={[styles.emptyTitle, { color: c.text }]}>No activity yet</Text>
+        </View>
       ) : null}
 
       <View style={styles.grid}>
-        <MetricCard title="Recent Activity" value={hasLogs ? "1 Ride" : "—"} hint="Last 7 days" />
-        <MetricCard title="Last Alert" value="—" hint="Safety alerts later" />
-        <MetricCard title="Total Distance" value="—" hint="Weekly totals later" />
-        <MetricCard title="Duration" value="—" hint="Time tracking later" />
+        <MetricCard title="Recent" value={hasLogs ? "1 Ride" : "—"} hint="7 days" c={c} />
+        <MetricCard title="Alert" value="—" hint="Latest" c={c} />
+        <MetricCard title="Distance" value="—" hint="Total" c={c} />
+        <MetricCard title="Duration" value="—" hint="Time" c={c} />
       </View>
 
-      <MetricCard
-        fullWidth
-        title="Export Formats"
-        value="CSV / PDF"
-        hint="Export session summaries for sharing and reports."
-      />
-    </ThemedView>
+      <MetricCard fullWidth title="Export" value="CSV / PDF" hint="Share sessions" c={c} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 18, gap: 12 },
-  sub: { opacity: 0.8, fontSize: 13 },
+  container: {
+    flex: 1,
+    padding: 18,
+    gap: 14,
+  },
 
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+  },
+
   headerBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
+  },
+  headerBtnText: {
+    fontWeight: "800",
+    fontSize: 14,
   },
 
   empty: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 6,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    padding: 24,
+    alignItems: "center",
+    gap: 10,
   },
-  emptySub: { opacity: 0.75, fontSize: 13 },
+  emptyIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyIconText: {
+    fontSize: 24,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
 
   card: {
-    borderRadius: 16,
-    padding: 14,
-    gap: 6,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
-    backgroundColor: "transparent",
+    padding: 16,
+    gap: 6,
   },
-  cardHalf: { width: "48%" },
-  cardFull: { width: "100%" },
-
-  value: { marginTop: 6 },
-  hint: { opacity: 0.7, marginTop: 2, fontSize: 12, lineHeight: 16 },
+  cardHalf: {
+    width: "48%",
+  },
+  cardFull: {
+    width: "100%",
+  },
+  cardTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  cardValue: {
+    fontSize: 26,
+    fontWeight: "800",
+  },
+  cardHint: {
+    fontSize: 13,
+  },
 });

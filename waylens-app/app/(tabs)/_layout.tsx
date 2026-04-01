@@ -13,34 +13,50 @@ export default function TabLayout() {
   const c = Colors[colorScheme ?? "light"];
   const insets = useSafeAreaInsets();
 
-  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 10 : 0) + 10;
+  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 10 : 0) + 8;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
         headerTitleAlign: "center",
-        headerStyle: { backgroundColor: c.background },
+        headerStyle: {
+          backgroundColor: c.background,
+        },
         headerTintColor: c.text,
         headerShadowVisible: false,
 
-        tabBarButton: HapticTab,
-        tabBarActiveTintColor: c.tint,
-        tabBarInactiveTintColor: "rgba(140,140,140,0.9)",
-
-        tabBarStyle: {
+        sceneStyle: {
           backgroundColor: c.background,
-          borderTopColor: "rgba(120,120,120,0.12)",
-
-          // This is the key: raise the bar by respecting safe area + extra padding
-          paddingTop: 6,
-          paddingBottom: bottomPad,
-
-          // Height must include the bottom padding or it will still feel cramped/low
-          height: 52 + bottomPad,
         },
 
-        tabBarLabelStyle: { fontSize: 11, marginTop: 2 },
+        tabBarButton: HapticTab,
+        tabBarActiveTintColor: c.tint,
+        tabBarInactiveTintColor: c.muted,
+
+        tabBarStyle: {
+          position: "absolute",
+          left: 14,
+          right: 14,
+          bottom: 10,
+          height: 60 + bottomPad,
+          paddingTop: 8,
+          paddingBottom: bottomPad,
+          backgroundColor: c.card,
+          borderTopWidth: 0,
+          borderRadius: 22,
+          elevation: 0,
+          shadowColor: "#000",
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 8 },
+        },
+
+        tabBarLabelStyle: {
+          fontSize: 11,
+          marginTop: 2,
+          fontWeight: "600",
+        },
       }}
     >
       <Tabs.Screen
@@ -48,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarLabel: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -56,15 +72,15 @@ export default function TabLayout() {
         options={{
           title: "HUD",
           tabBarLabel: "HUD",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="eyeglasses" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="eyeglasses" color={color} />,
         }}
       />
       <Tabs.Screen
         name="navigation"
         options={{
-          title: "Navigation",
+          title: "Nav",
           tabBarLabel: "Nav",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="location.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="location.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -72,7 +88,7 @@ export default function TabLayout() {
         options={{
           title: "Logs",
           tabBarLabel: "Logs",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="clock.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="clock.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -80,7 +96,7 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarLabel: "Settings",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
         }}
       />
     </Tabs>

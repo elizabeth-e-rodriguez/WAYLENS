@@ -1,172 +1,117 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Switch, Pressable } from "react-native";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { useThemeMode, ThemeMode } from "@/components/theme/ThemeMode";
+import { StyleSheet, View, Switch, Text, ScrollView } from "react-native";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 function Row({
   title,
-  subtitle,
+  value,
   right,
+  c,
 }: {
   title: string;
-  subtitle?: string;
+  value?: string;
   right?: React.ReactNode;
+  c: any;
 }) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
-        <ThemedText type="subtitle">{title}</ThemedText>
-        {subtitle ? <ThemedText style={styles.subText}>{subtitle}</ThemedText> : null}
+        <Text style={[styles.rowTitle, { color: c.text }]}>{title}</Text>
+        {value ? <Text style={[styles.rowValue, { color: c.muted }]}>{value}</Text> : null}
       </View>
       {right}
     </View>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  c,
+}: {
+  title: string;
+  children: React.ReactNode;
+  c: any;
+}) {
   return (
-    <ThemedView style={styles.section}>
-      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+    <View style={[styles.section, { backgroundColor: c.card, borderColor: c.border }]}>
+      <Text style={[styles.sectionTitle, { color: c.muted }]}>{title}</Text>
       {children}
-    </ThemedView>
+    </View>
   );
 }
 
 export default function SettingsScreen() {
+  const scheme = useColorScheme();
+  const c = Colors[scheme ?? "light"];
   const [metricUnits, setMetricUnits] = useState(true);
-  const [safetyAlerts, setSafetyAlerts] = useState(true);
-
-  const { mode, setMode } = useThemeMode();
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">Settings</ThemedText>
-      <ThemedText style={styles.sub}>These are early settings placeholders for the MVP.</ThemedText>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.title, { color: c.text }]}>Settings</Text>
 
-      <Section title="Appearance">
-        <Row
-          title="Theme"
-          subtitle="System, Light, or Dark"
-          right={
-            <View style={styles.themeRow}>
-              {(["system", "light", "dark"] as ThemeMode[]).map((m) => {
-                const active = mode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setMode(m)}
-                    style={[styles.themeBtn, active && styles.themeBtnActive]}
-                  >
-                    <ThemedText type="subtitle">
-                      {m === "system" ? "System" : m === "light" ? "Light" : "Dark"}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          }
-        />
+      <Section title="Device" c={c}>
+        <Row title="HUD Connection" value="Not Connected" c={c} />
       </Section>
 
-      <Section title="Device">
-        <Row
-          title="HUD Connection"
-          subtitle="Wi-Fi / BLE pairing status"
-          right={
-            <Pressable style={styles.pill} onPress={() => {}}>
-              <ThemedText type="subtitle">Not Connected</ThemedText>
-            </Pressable>
-          }
-        />
-        <View style={styles.divider} />
-        <Row
-          title="HUD Brightness"
-          subtitle="Adjust display brightness"
-          right={
-            <Pressable style={styles.pillGhost} onPress={() => {}}>
-              <ThemedText type="subtitle">Soon</ThemedText>
-            </Pressable>
-          }
-        />
-      </Section>
-
-      <Section title="Safety">
-        <Row
-          title="Safety Alerts"
-          subtitle="Speed / hazard alerts (later)"
-          right={<Switch value={safetyAlerts} onValueChange={setSafetyAlerts} />}
-        />
-      </Section>
-
-      <Section title="Preferences">
+      <Section title="Preferences" c={c}>
         <Row
           title="Units"
-          subtitle={metricUnits ? "km/h, km" : "mph, mi"}
-          right={<Switch value={metricUnits} onValueChange={setMetricUnits} />}
-        />
-        <View style={styles.divider} />
-        <Row
-          title="Developer Mode"
-          subtitle="Show debug data"
+          value={metricUnits ? "km/h, km" : "mph, mi"}
+          c={c}
           right={
-            <Pressable style={styles.pillGhost} onPress={() => {}}>
-              <ThemedText type="subtitle">Soon</ThemedText>
-            </Pressable>
+            <Switch
+              value={metricUnits}
+              onValueChange={setMetricUnits}
+              trackColor={{ false: "#C8D0C6", true: c.tint }}
+            />
           }
         />
       </Section>
-    </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 18, gap: 12 },
-  sub: { opacity: 0.8, fontSize: 13 },
+  scrollContent: {
+    padding: 18,
+    gap: 14,
+    paddingBottom: 120,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+  },
 
   section: {
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
-    backgroundColor: "transparent",
+    padding: 16,
+    gap: 14,
   },
-  sectionTitle: { opacity: 0.75, fontSize: 12, letterSpacing: 0.4 },
-
-  row: { flexDirection: "row", alignItems: "center", gap: 12 },
-  subText: { opacity: 0.75, fontSize: 12, marginTop: 2 },
-
-  divider: { height: 1, backgroundColor: "rgba(120,120,120,0.12)" },
-
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.10)",
-    borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.12)",
-  },
-  pillGhost: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.10)",
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 
-  themeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  themeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(120,120,120,0.10)",
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  themeBtnActive: {
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderColor: "rgba(120,120,120,0.25)",
+  rowTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  rowValue: {
+    fontSize: 13,
+    marginTop: 4,
   },
 });

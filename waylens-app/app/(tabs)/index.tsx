@@ -1,16 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  View,
   Text,
   Pressable,
   FlatList,
-  Alert,
   StyleSheet,
   TextInput,
   ActivityIndicator,
   Keyboard,
+  ScrollView,
+  View,
 } from "react-native";
 import * as Location from "expo-location";
+import { router } from "expo-router";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 type Mode = "BIKE" | "HIKE";
 
@@ -31,14 +34,15 @@ const DEMO_TRAILS: Trail[] = [
   { id: "t3", name: "Summit View Route", difficulty: "Hard", lengthKm: 10.5 },
 ];
 
-const HIKING_PROJECT_KEY = ""; // REI Hiking Project API key
+const HIKING_PROJECT_KEY = "";
 const MAX_DISTANCE_MILES = 25;
 
 export default function HomeScreen() {
-  const [mode, setMode] = useState<Mode>("HIKE");
-  const [locationText, setLocationText] = useState("Getting location...");
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const scheme = useColorScheme();
+  const c = Colors[scheme ?? "light"];
 
+  const [mode, setMode] = useState<Mode>("HIKE");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [speedKmh, setSpeedKmh] = useState(0);
 
   const [query, setQuery] = useState("");
@@ -50,12 +54,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
+
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setLocationText("Location permission denied");
-        return;
-      }
+      if (status !== "granted") return;
 
       sub = await Location.watchPositionAsync(
         {
@@ -66,12 +68,8 @@ export default function HomeScreen() {
         (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-
           setCoords({ lat, lon });
-          setLocationText(`${lat.toFixed(5)}, ${lon.toFixed(5)}`);
-
-          const kmh = Math.max(0, (pos.coords.speed ?? 0) * 3.6);
-          setSpeedKmh(kmh);
+          setSpeedKmh(Math.max(0, (pos.coords.speed ?? 0) * 3.6));
         }
       );
     })();
@@ -86,22 +84,25 @@ export default function HomeScreen() {
     setTrailError(null);
 
     if (!coords) {
-      setTrailError("No GPS yet. Please wait for location.");
+      setTrailError("Waiting for GPS");
       return;
     }
 
     setLoadingTrails(true);
+
     try {
       if (!HIKING_PROJECT_KEY) {
         setTrails(applyQueryFilter(DEMO_TRAILS, query));
         return;
       }
+
       const url =
         `https://www.hikingproject.com/data/get-trails?` +
         `lat=${coords.lat}&lon=${coords.lon}&maxDistance=${MAX_DISTANCE_MILES}&key=${HIKING_PROJECT_KEY}`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Trail API failed (${res.status})`);
+
       const json = await res.json();
       const apiTrails: Trail[] = (json?.trails ?? []).map((t: any) => ({
         id: String(t.id),
@@ -113,9 +114,10 @@ export default function HomeScreen() {
         latitude: t.latitude,
         longitude: t.longitude,
       }));
+
       setTrails(applyQueryFilter(apiTrails, query));
     } catch (e: any) {
-      setTrailError(e?.message ?? "Trail search failed.");
+      setTrailError(e?.message ?? "Trail search failed");
       setTrails(applyQueryFilter(DEMO_TRAILS, query));
     } finally {
       setLoadingTrails(false);
@@ -125,173 +127,284 @@ export default function HomeScreen() {
   function applyQueryFilter(list: Trail[], q: string) {
     const trimmed = q.trim().toLowerCase();
     if (!trimmed) return list;
+
     return list.filter((t) =>
       `${t.name} ${t.location ?? ""} ${t.summary ?? ""}`.toLowerCase().includes(trimmed)
     );
   }
 
-  const hudPreview = useMemo(() => {
-    return mode === "BIKE"
-      ? `MODE: BIKE\nSPEED: ${speedKmh.toFixed(0)} km/h\nNEXT: → 350m\nTRIP: 4.2 km`
-      : `MODE: HIKE\nTRAIL: ${selectedTrail?.name ?? "None"}\nNEXT: → 120m\nTRIP: 2.1 km`;
-  }, [mode, speedKmh, selectedTrail]);
+  const gpsReady = !!coords;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>WAYLENS</Text>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.title, { color: c.text }]}>WAYLENS</Text>
+      <Text style={[styles.sub, { color: c.muted }]}>Ride. Hike. Stay focused.</Text>
 
       <View style={styles.modeRow}>
-        {(["BIKE", "HIKE"] as const).map((m) => {
-          const active = mode === m;
-          return (
-            <Pressable
-              key={m}
-              onPress={() => setMode(m)}
-              style={[styles.modeBtn, active && styles.modeBtnActive]}
-              accessibilityLabel={`Switch mode to ${m === "BIKE" ? "bike" : "hike"}`}
-            >
-              <Text style={active ? styles.modeTextActive : styles.modeText}>
-                {m === "BIKE" ? "🚴 BIKE" : "🥾 HIKE"}
-              </Text>
-            </Pressable>
-          );
-        })}
+        <Pressable
+          onPress={() => {
+            setMode("BIKE");
+            router.push("/navigation");
+          }}
+          style={[
+            styles.modeBtn,
+            {
+              backgroundColor: c.tint,
+              borderColor: c.tint,
+            },
+          ]}
+        >
+          <Text style={[styles.modeText, { color: "#FFFFFF" }]}> Bike</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setMode("HIKE")}
+          style={[
+            styles.modeBtn,
+            {
+              backgroundColor: mode === "HIKE" ? c.tintSoft : c.card,
+              borderColor: mode === "HIKE" ? c.tint : c.border,
+            },
+          ]}
+        >
+          <Text style={[styles.modeText, { color: c.text }]}> Hike</Text>
+        </Pressable>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.bold}>GPS</Text>
-        <Text>Location: {locationText}</Text>
-        <Text>Speed: {speedKmh.toFixed(1)} km/h</Text>
+      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: c.border }]}>
+        <View style={styles.heroTop}>
+          <View>
+            <Text style={[styles.heroNumber, { color: c.text }]}>{speedKmh.toFixed(0)}</Text>
+            <Text style={[styles.heroLabel, { color: c.muted }]}>km/h</Text>
+          </View>
+
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: gpsReady ? c.tintSoft : c.surface, borderColor: c.border },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: gpsReady ? c.tint : c.muted }]}>
+              {gpsReady ? "GPS Ready" : "Getting GPS"}
+            </Text>
+          </View>
+        </View>
+
+        {mode === "HIKE" && selectedTrail ? (
+          <Text style={[styles.selectedTrail, { color: c.text }]}>{selectedTrail.name}</Text>
+        ) : null}
       </View>
 
       {mode === "HIKE" && (
-        <View style={styles.card}>
-          <Text style={styles.bold}>Trail Search</Text>
+        <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+          <Text style={[styles.sectionTitle, { color: c.text }]}>Trails</Text>
+
           <View style={styles.searchRow}>
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search keyword (optional)"
-              style={styles.input}
+              placeholder="Search trails"
+              placeholderTextColor={c.muted}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: c.surface,
+                  borderColor: c.border,
+                  color: c.text,
+                },
+              ]}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
               onSubmitEditing={searchTrailsNearby}
             />
-            <Pressable onPress={searchTrailsNearby} style={styles.searchBtn} disabled={loadingTrails}>
+
+            <Pressable
+              onPress={searchTrailsNearby}
+              style={[styles.searchBtn, { backgroundColor: c.tint }]}
+              disabled={loadingTrails}
+            >
               <Text style={styles.searchBtnText}>{loadingTrails ? "..." : "Search"}</Text>
             </Pressable>
           </View>
 
-          {trailError && <Text style={styles.errorText}>{trailError}</Text>}
+          {trailError ? <Text style={[styles.errorText, { color: c.danger }]}>{trailError}</Text> : null}
 
           {loadingTrails ? (
-            <View style={{ paddingTop: 12 }}>
-              <ActivityIndicator />
-              <Text style={{ marginTop: 8 }}>Searching trails near you...</Text>
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={c.tint} />
             </View>
           ) : (
             <FlatList
-              style={{ marginTop: 10, maxHeight: 260 }}
+              style={{ marginTop: 10, maxHeight: 240 }}
               data={trails}
               keyExtractor={(i) => i.id}
-              ListEmptyComponent={<Text style={{ marginTop: 8 }}>Tap Search to load trails.</Text>}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => setSelectedTrail(item)}
-                  style={[
-                    styles.trailCard,
-                    selectedTrail?.id === item.id && styles.trailCardActive,
-                  ]}
-                >
-                  <Text style={styles.trailName}>{item.name}</Text>
-                  <Text style={styles.trailMeta}>
-                    {(item.difficulty ?? "Unknown")} •{" "}
-                    {item.lengthKm ? `${item.lengthKm.toFixed(1)} km` : "N/A"}
-                  </Text>
-                  {item.location ? <Text style={styles.trailMeta}>{item.location}</Text> : null}
-                </Pressable>
-              )}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              ListEmptyComponent={
+                <Text style={[styles.emptyText, { color: c.muted }]}>Search to load trails</Text>
+              }
+              renderItem={({ item }) => {
+                const active = selectedTrail?.id === item.id;
+                return (
+                  <Pressable
+                    onPress={() => setSelectedTrail(item)}
+                    style={[
+                      styles.trailCard,
+                      {
+                        backgroundColor: active ? c.tintSoft : c.surface,
+                        borderColor: active ? c.tint : c.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.trailName, { color: c.text }]}>{item.name}</Text>
+                    <Text style={[styles.trailMeta, { color: c.muted }]}>
+                      {(item.difficulty ?? "Unknown")} •{" "}
+                      {item.lengthKm ? `${item.lengthKm.toFixed(1)} km` : "N/A"}
+                    </Text>
+                  </Pressable>
+                );
+              }}
             />
           )}
         </View>
       )}
-
-      <View style={styles.card}>
-        <Text style={styles.bold}>HUD Preview</Text>
-        <Text style={styles.mono}>{hudPreview}</Text>
-
-        <Pressable
-          onPress={() => Alert.alert("Preview", hudPreview)}
-          style={styles.sendBtn}
-        >
-          <Text style={styles.sendBtnText}>Preview HUD</Text>
-        </Pressable>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "700" },
+  scrollContent: {
+    padding: 18,
+    gap: 14,
+    paddingBottom: 120,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+  },
+  sub: {
+    fontSize: 14,
+    marginTop: -6,
+  },
 
-  modeRow: { flexDirection: "row", gap: 10, marginVertical: 6 },
+  modeRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
   modeBtn: {
     flex: 1,
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 18,
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
+    borderWidth: 1,
   },
-  modeBtnActive: { backgroundColor: "#0b66ff" },
-  modeText: { fontWeight: "600" },
-  modeTextActive: { color: "#fff", fontWeight: "700" },
+  modeText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
 
-  card: { padding: 12, borderRadius: 10, backgroundColor: "#f9f9f9" },
-  bold: { fontWeight: "700", marginBottom: 6 },
+  heroCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 18,
+    gap: 10,
+  },
+  heroTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heroNumber: {
+    fontSize: 42,
+    fontWeight: "800",
+    lineHeight: 46,
+  },
+  heroLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  selectedTrail: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  searchRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+  badge: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  card: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  searchRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
   input: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
+    fontSize: 14,
   },
   searchBtn: {
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: "#0b66ff",
-    alignItems: "center",
+    borderRadius: 16,
+    paddingHorizontal: 18,
     justifyContent: "center",
+    alignItems: "center",
   },
-  searchBtnText: { color: "#fff", fontWeight: "700" },
-
-  errorText: { marginTop: 8, color: "#b00020" },
+  searchBtnText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
+  },
 
   trailCard: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#eee",
-    marginBottom: 8,
-    backgroundColor: "#fff",
+    marginBottom: 10,
   },
-  trailCardActive: { borderColor: "#0b66ff" },
-  trailName: { fontWeight: "700", fontSize: 16 },
-  trailMeta: { marginTop: 2, color: "#444" },
-
-  sendBtn: {
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#0b66ff",
-    alignItems: "center",
+  trailName: {
+    fontSize: 15,
+    fontWeight: "700",
   },
-  sendBtnText: { color: "#fff", fontWeight: "700" },
+  trailMeta: {
+    marginTop: 4,
+    fontSize: 13,
+  },
 
-  mono: { fontFamily: "monospace", marginTop: 6 },
+  loadingWrap: {
+    paddingVertical: 18,
+  },
+  emptyText: {
+    marginTop: 10,
+    fontSize: 13,
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });
