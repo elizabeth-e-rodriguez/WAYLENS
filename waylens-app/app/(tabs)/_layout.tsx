@@ -2,9 +2,9 @@ import React from "react";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -13,7 +13,8 @@ export default function TabLayout() {
   const c = Colors[colorScheme ?? "light"];
   const insets = useSafeAreaInsets();
 
-  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 10 : 0) + 8;
+  const bottomPad =
+    Math.max(insets.bottom, Platform.OS === "android" ? 10 : 0) + 8;
 
   return (
     <Tabs
@@ -25,15 +26,12 @@ export default function TabLayout() {
         },
         headerTintColor: c.text,
         headerShadowVisible: false,
-
         sceneStyle: {
           backgroundColor: c.background,
         },
-
         tabBarButton: HapticTab,
         tabBarActiveTintColor: c.tint,
         tabBarInactiveTintColor: c.muted,
-
         tabBarStyle: {
           position: "absolute",
           left: 14,
@@ -51,7 +49,6 @@ export default function TabLayout() {
           shadowRadius: 16,
           shadowOffset: { width: 0, height: 8 },
         },
-
         tabBarLabelStyle: {
           fontSize: 11,
           marginTop: 2,
@@ -64,39 +61,73 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarLabel: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="hud"
         options={{
-          title: "HUD",
-          tabBarLabel: "HUD",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="eyeglasses" color={color} />,
+          title: "Display",
+          tabBarLabel: "Display",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "glasses" : "glasses-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="navigation"
         options={{
-          title: "Nav",
-          tabBarLabel: "Nav",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="location.fill" color={color} />,
+          title: "Navigation",
+          tabBarLabel: "Navigation",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "navigate" : "navigate-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="logs"
         options={{
           title: "Logs",
           tabBarLabel: "Logs",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="clock.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "time" : "time-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
           tabBarLabel: "Settings",
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "settings" : "settings-outline"}
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
     </Tabs>

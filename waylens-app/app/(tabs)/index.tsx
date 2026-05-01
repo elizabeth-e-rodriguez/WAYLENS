@@ -1,139 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Text,
   Pressable,
-  FlatList,
   StyleSheet,
-  TextInput,
-  ActivityIndicator,
-  Keyboard,
   ScrollView,
   View,
+  ImageBackground,
 } from "react-native";
-import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 type Mode = "BIKE" | "HIKE";
 
-type Trail = {
-  id: string;
-  name: string;
-  difficulty?: string;
-  lengthKm?: number;
-  location?: string;
-  summary?: string;
-  latitude?: number;
-  longitude?: number;
-};
-
-const DEMO_TRAILS: Trail[] = [
-  { id: "t1", name: "River Walk Loop", difficulty: "Easy", lengthKm: 3.2 },
-  { id: "t2", name: "Pine Ridge Trail", difficulty: "Moderate", lengthKm: 6.8 },
-  { id: "t3", name: "Summit View Route", difficulty: "Hard", lengthKm: 10.5 },
-];
-
-const HIKING_PROJECT_KEY = "";
-const MAX_DISTANCE_MILES = 25;
+const ACCOUNT_KEY = "waylens_account";
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const c = Colors[scheme ?? "light"];
 
   const [mode, setMode] = useState<Mode>("HIKE");
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-  const [speedKmh, setSpeedKmh] = useState(0);
-
-  const [query, setQuery] = useState("");
-  const [trails, setTrails] = useState<Trail[]>([]);
-  const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
-
-  const [loadingTrails, setLoadingTrails] = useState(false);
-  const [trailError, setTrailError] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
-    let sub: Location.LocationSubscription | null = null;
-
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-
-      sub = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 1000,
-          distanceInterval: 1,
-        },
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          setCoords({ lat, lon });
-          setSpeedKmh(Math.max(0, (pos.coords.speed ?? 0) * 3.6));
-        }
-      );
-    })();
-
-    return () => {
-      if (sub) sub.remove();
-    };
+    loadUser();
   }, []);
 
-  async function searchTrailsNearby() {
-    Keyboard.dismiss();
-    setTrailError(null);
-
-    if (!coords) {
-      setTrailError("Waiting for GPS");
-      return;
-    }
-
-    setLoadingTrails(true);
-
+  async function loadUser() {
     try {
-      if (!HIKING_PROJECT_KEY) {
-        setTrails(applyQueryFilter(DEMO_TRAILS, query));
-        return;
+      const saved = await AsyncStorage.getItem(ACCOUNT_KEY);
+      if (saved) {
+        const account = JSON.parse(saved);
+        setUsername(account.name);
       }
-
-      const url =
-        `https://www.hikingproject.com/data/get-trails?` +
-        `lat=${coords.lat}&lon=${coords.lon}&maxDistance=${MAX_DISTANCE_MILES}&key=${HIKING_PROJECT_KEY}`;
-
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Trail API failed (${res.status})`);
-
-      const json = await res.json();
-      const apiTrails: Trail[] = (json?.trails ?? []).map((t: any) => ({
-        id: String(t.id),
-        name: t.name,
-        difficulty: t.difficulty,
-        lengthKm: typeof t.length === "number" ? t.length * 1.60934 : undefined,
-        location: t.location,
-        summary: t.summary,
-        latitude: t.latitude,
-        longitude: t.longitude,
-      }));
-
-      setTrails(applyQueryFilter(apiTrails, query));
-    } catch (e: any) {
-      setTrailError(e?.message ?? "Trail search failed");
-      setTrails(applyQueryFilter(DEMO_TRAILS, query));
-    } finally {
-      setLoadingTrails(false);
+    } catch (error) {
+      console.log("LOAD USER ERROR:", error);
     }
   }
 
-  function applyQueryFilter(list: Trail[], q: string) {
-    const trimmed = q.trim().toLowerCase();
-    if (!trimmed) return list;
-
-    return list.filter((t) =>
-      `${t.name} ${t.location ?? ""} ${t.summary ?? ""}`.toLowerCase().includes(trimmed)
-    );
+  function startMode(nextMode: Mode) {
+    setMode(nextMode);
+    (global as any).__waylensMode = nextMode === "BIKE" ? "bike" : "hike";
+    router.push("/navigation");
   }
-
-  const gpsReady = !!coords;
 
   return (
     <ScrollView
@@ -141,138 +52,194 @@ export default function HomeScreen() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.title, { color: c.text }]}>WAYLENS</Text>
-      <Text style={[styles.sub, { color: c.muted }]}>Ride. Hike. Stay focused.</Text>
+      <View style={styles.headerWrap}>
+        <Text style={[styles.welcome, { color: c.tint }]}>Welcome back</Text>
+        <Text style={[styles.title, { color: c.text }]}>
+          {username || "User"}
+        </Text>
+        <Text style={[styles.sub, { color: c.muted }]}>
+          Ready for your next ride or hike?
+        </Text>
+      </View>
+
+      <ImageBackground
+        source={require("@/assets/images/hike.png")}
+        style={styles.heroImageCard}
+        imageStyle={styles.heroImage}
+      >
+        <View style={styles.heroOverlay}>
+          <View style={styles.heroBadgeRow}>
+            <View
+              style={[
+                styles.heroBadge,
+                {
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderColor: "rgba(255,255,255,0.22)",
+                },
+              ]}
+            >
+              <Ionicons name="bicycle" size={18} color="#fff" />
+              <Text style={styles.heroBadgeText}>Cycling</Text>
+            </View>
+
+            <View
+              style={[
+                styles.heroBadge,
+                {
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                  borderColor: "rgba(255,255,255,0.22)",
+                },
+              ]}
+            >
+              <Ionicons name="walk" size={18} color="#fff" />
+              <Text style={styles.heroBadgeText}>Hiking</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroBottom}>
+            <Text style={styles.heroHeadline}>
+              See the Way. Stay in Motion.
+            </Text>
+            <Text style={styles.heroCaption}>
+              Choose your activity and start guided navigation through your HUD.
+            </Text>
+          </View>
+        </View>
+      </ImageBackground>
 
       <View style={styles.modeRow}>
         <Pressable
-          onPress={() => {
-            setMode("BIKE");
-            router.push("/navigation");
-          }}
+          onPress={() => startMode("BIKE")}
           style={[
             styles.modeBtn,
             {
-              backgroundColor: c.tint,
-              borderColor: c.tint,
+              backgroundColor: mode === "BIKE" ? c.tint : c.card,
+              borderColor: mode === "BIKE" ? c.tint : c.border,
             },
           ]}
         >
-          <Text style={[styles.modeText, { color: "#FFFFFF" }]}> Bike</Text>
+          <Ionicons
+            name="bicycle"
+            size={18}
+            color={mode === "BIKE" ? "#FFFFFF" : c.text}
+          />
+          <Text
+            style={[
+              styles.modeText,
+              { color: mode === "BIKE" ? "#FFFFFF" : c.text },
+            ]}
+          >
+            Bike
+          </Text>
         </Pressable>
 
         <Pressable
-          onPress={() => setMode("HIKE")}
+          onPress={() => startMode("HIKE")}
           style={[
             styles.modeBtn,
             {
-              backgroundColor: mode === "HIKE" ? c.tintSoft : c.card,
+              backgroundColor: mode === "HIKE" ? c.tint : c.card,
               borderColor: mode === "HIKE" ? c.tint : c.border,
             },
           ]}
         >
-          <Text style={[styles.modeText, { color: c.text }]}> Hike</Text>
+          <Ionicons
+            name="walk"
+            size={18}
+            color={mode === "HIKE" ? "#FFFFFF" : c.text}
+          />
+          <Text
+            style={[
+              styles.modeText,
+              { color: mode === "HIKE" ? "#FFFFFF" : c.text },
+            ]}
+          >
+            Hike
+          </Text>
         </Pressable>
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <View style={styles.heroTop}>
-          <View>
-            <Text style={[styles.heroNumber, { color: c.text }]}>{speedKmh.toFixed(0)}</Text>
-            <Text style={[styles.heroLabel, { color: c.muted }]}>km/h</Text>
-          </View>
+      <View
+        style={[
+          styles.actionCard,
+          { backgroundColor: c.card, borderColor: c.border },
+        ]}
+      >
+        <Text style={[styles.actionTitle, { color: c.text }]}>
+          Quick Actions
+        </Text>
+        <Text style={[styles.actionSub, { color: c.muted }]}>
+          Jump into the parts of the app you use most.
+        </Text>
 
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: gpsReady ? c.tintSoft : c.surface, borderColor: c.border },
-            ]}
+        <View style={styles.quickRow}>
+          <Pressable
+            onPress={() => router.push("/hud")}
+            style={[styles.quickBtn, { backgroundColor: c.tint }]}
           >
-            <Text style={[styles.badgeText, { color: gpsReady ? c.tint : c.muted }]}>
-              {gpsReady ? "GPS Ready" : "Getting GPS"}
+            <Ionicons name="glasses-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.quickBtnText}>HUD</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/logs")}
+            style={[styles.quickBtn, { backgroundColor: c.tint }]}
+          >
+            <Ionicons name="time-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.quickBtnText}>Logs</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.quickRow}>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            style={[styles.quickBtn, { backgroundColor: c.surface }]}
+          >
+            <Ionicons name="settings-outline" size={18} color={c.text} />
+            <Text style={[styles.quickBtnTextAlt, { color: c.text }]}>
+              Settings
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/navigation")}
+            style={[styles.quickBtn, { backgroundColor: c.surface }]}
+          >
+            <Ionicons name="navigate-outline" size={18} color={c.text} />
+            <Text style={[styles.quickBtnTextAlt, { color: c.text }]}>
+              Navigation
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.statusCard,
+          { backgroundColor: c.card, borderColor: c.border },
+        ]}
+      >
+        <Text style={[styles.statusTitle, { color: c.text }]}>
+          Current Selection
+        </Text>
+
+        <View style={styles.statusRow}>
+          <View style={[styles.statusBadge, { backgroundColor: c.tintSoft }]}>
+            <Ionicons
+              name={mode === "BIKE" ? "bicycle" : "walk"}
+              size={16}
+              color={c.tint}
+            />
+            <Text style={[styles.statusBadgeText, { color: c.tint }]}>
+              {mode === "BIKE" ? "Bike Mode" : "Hike Mode"}
             </Text>
           </View>
         </View>
 
-        {mode === "HIKE" && selectedTrail ? (
-          <Text style={[styles.selectedTrail, { color: c.text }]}>{selectedTrail.name}</Text>
-        ) : null}
+        <Text style={[styles.statusText, { color: c.muted }]}>
+          Tap one of the mode buttons above to launch navigation directly in that mode.
+        </Text>
       </View>
-
-      {mode === "HIKE" && (
-        <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-          <Text style={[styles.sectionTitle, { color: c.text }]}>Trails</Text>
-
-          <View style={styles.searchRow}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search trails"
-              placeholderTextColor={c.muted}
-              style={[
-                styles.input,
-                {
-                  backgroundColor: c.surface,
-                  borderColor: c.border,
-                  color: c.text,
-                },
-              ]}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              onSubmitEditing={searchTrailsNearby}
-            />
-
-            <Pressable
-              onPress={searchTrailsNearby}
-              style={[styles.searchBtn, { backgroundColor: c.tint }]}
-              disabled={loadingTrails}
-            >
-              <Text style={styles.searchBtnText}>{loadingTrails ? "..." : "Search"}</Text>
-            </Pressable>
-          </View>
-
-          {trailError ? <Text style={[styles.errorText, { color: c.danger }]}>{trailError}</Text> : null}
-
-          {loadingTrails ? (
-            <View style={styles.loadingWrap}>
-              <ActivityIndicator color={c.tint} />
-            </View>
-          ) : (
-            <FlatList
-              style={{ marginTop: 10, maxHeight: 240 }}
-              data={trails}
-              keyExtractor={(i) => i.id}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-              ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: c.muted }]}>Search to load trails</Text>
-              }
-              renderItem={({ item }) => {
-                const active = selectedTrail?.id === item.id;
-                return (
-                  <Pressable
-                    onPress={() => setSelectedTrail(item)}
-                    style={[
-                      styles.trailCard,
-                      {
-                        backgroundColor: active ? c.tintSoft : c.surface,
-                        borderColor: active ? c.tint : c.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.trailName, { color: c.text }]}>{item.name}</Text>
-                    <Text style={[styles.trailMeta, { color: c.muted }]}>
-                      {(item.difficulty ?? "Unknown")} •{" "}
-                      {item.lengthKm ? `${item.lengthKm.toFixed(1)} km` : "N/A"}
-                    </Text>
-                  </Pressable>
-                );
-              }}
-            />
-          )}
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -280,131 +247,164 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
-    gap: 14,
+    gap: 16,
     paddingBottom: 120,
   },
-  title: {
-    fontSize: 30,
+
+  headerWrap: {
+    marginTop: 6,
+  },
+  welcome: {
+    fontSize: 14,
     fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: "900",
+    marginTop: 2,
   },
   sub: {
-    fontSize: 14,
-    marginTop: -6,
+    fontSize: 15,
+    marginTop: 4,
+  },
+
+  heroImageCard: {
+    height: 420,
+    borderRadius: 30,
+    overflow: "hidden",
+    justifyContent: "space-between",
+  },
+  heroImage: {
+    borderRadius: 30,
+  },
+  heroOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.30)",
+    padding: 20,
+    justifyContent: "space-between",
+  },
+  heroBadgeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  heroBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  heroBottom: {
+    gap: 8,
+  },
+  heroHeadline: {
+    color: "#fff",
+    fontSize: 30,
+    fontWeight: "900",
+  },
+  heroCaption: {
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 15,
+    lineHeight: 21,
+    maxWidth: "92%",
   },
 
   modeRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 4,
+    marginTop: 2,
   },
   modeBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 18,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
   },
   modeText: {
     fontSize: 15,
     fontWeight: "700",
   },
 
-  heroCard: {
+  actionCard: {
     borderWidth: 1,
     borderRadius: 24,
     padding: 18,
+    gap: 14,
+  },
+  actionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  actionSub: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: -4,
+  },
+
+  quickRow: {
+    flexDirection: "row",
     gap: 10,
   },
-  heroTop: {
-    flexDirection: "row",
+  quickBtn: {
+    flex: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
   },
-  heroNumber: {
-    fontSize: 42,
+  quickBtnText: {
+    color: "#FFFFFF",
     fontWeight: "800",
-    lineHeight: 46,
-  },
-  heroLabel: {
     fontSize: 14,
-    fontWeight: "600",
   },
-  selectedTrail: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  badge: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
+  quickBtnTextAlt: {
+    fontWeight: "800",
+    fontSize: 14,
   },
 
-  card: {
+  statusCard: {
     borderWidth: 1,
     borderRadius: 24,
-    padding: 16,
+    padding: 18,
+    gap: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+  statusTitle: {
+    fontSize: 17,
+    fontWeight: "800",
   },
-
-  searchRow: {
+  statusRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
   },
-  input: {
-    flex: 1,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1,
-    fontSize: 14,
-  },
-  searchBtn: {
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    justifyContent: "center",
+  statusBadge: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: "flex-start",
   },
-  searchBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
+  statusBadgeText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  statusText: {
     fontSize: 14,
-  },
-
-  trailCard: {
-    padding: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  trailName: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  trailMeta: {
-    marginTop: 4,
-    fontSize: 13,
-  },
-
-  loadingWrap: {
-    paddingVertical: 18,
-  },
-  emptyText: {
-    marginTop: 10,
-    fontSize: 13,
-  },
-  errorText: {
-    marginTop: 10,
-    fontSize: 13,
-    fontWeight: "600",
+    lineHeight: 20,
   },
 });
