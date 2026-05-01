@@ -1,12 +1,12 @@
 # WAYLENS
 
-WAYLENS is a HUD-based smart sunglasses system designed for cycling and hiking. It provides real-time navigation directly in the user’s field of view using a transparent OLED display embedded in the glasses, paired with a mobile app for GPS tracking and route guidance.
-
-The goal of WAYLENS is to enable hands-free outdoor navigation without needing to check a phone.
-
 <p align="center">
   <img src="waylens-app/assets/images/architecture.png" width="800"/>
 </p>
+
+WAYLENS is a HUD-based smart sunglasses system designed for cycling and hiking. It provides real-time navigation directly in the user’s field of view using a transparent OLED display embedded in the glasses, paired with a mobile app for GPS tracking and route guidance.
+
+The goal of WAYLENS is to enable hands-free outdoor navigation without needing to check a phone.
 
 ---
 
