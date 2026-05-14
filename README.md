@@ -12,6 +12,15 @@ The goal of WAYLENS is to enable hands-free outdoor navigation without needing t
 
 ## Project Overview
 
+<p align="center">
+  <img src="waylens-app/assets/images/hardware.png" width="800"/>
+</p>
+
+<p align="center">
+  <img src="waylens-app/assets/images/lens1.png" width="400"/>
+  <img src="waylens-app/assets/images/lens2.png" width="400"/>
+</p>
+
 WAYLENS consists of two main components:
 
 ### Smart Glasses (Hardware)
@@ -81,6 +90,16 @@ WAYLENS consists of two main components:
 6. The ESP32 receives the data.
 7. The OLED display renders directions in real time on the glasses.
 
+<table align="center">
+  <tr>
+    <td><img src="waylens-app/assets/images/framework1.png" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework2.png" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework3.png" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework4.png" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework5.png" width="180"/></td>
+  </tr>
+</table>
+
 ---
 
 ## Setup Instructions
@@ -121,3 +140,8 @@ npx expo start
 - Launch the mobile app
 - The app connects via WebSocket
 - Navigation data streams to the HUD
+
+-----
+<p align="center">
+  <img src="waylens-app/assets/images/logo.png" width="400"/>
+</p>
