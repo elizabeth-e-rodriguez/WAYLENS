@@ -13,7 +13,7 @@ The goal of WAYLENS is to enable hands-free outdoor navigation without needing t
 ## Project Overview
 
 <p align="center">
-  <img src="waylens-app/assets/images/hardware.png" width="800"/>
+  <img src="waylens-app/assets/images/hardware.png" width="400"/>
 </p>
 
 <p align="center">
@@ -92,11 +92,11 @@ WAYLENS consists of two main components:
 
 <table align="center">
   <tr>
-    <td><img src="waylens-app/assets/images/framework1.png" width="180"/></td>
-    <td><img src="waylens-app/assets/images/framework2.png" width="180"/></td>
-    <td><img src="waylens-app/assets/images/framework3.png" width="180"/></td>
-    <td><img src="waylens-app/assets/images/framework4.png" width="180"/></td>
-    <td><img src="waylens-app/assets/images/framework5.png" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework1.jpg" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework2.jpg" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework3.jpg" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework4.jpg" width="180"/></td>
+    <td><img src="waylens-app/assets/images/framework5.jpg" width="180"/></td>
   </tr>
 </table>
 
@@ -143,5 +143,5 @@ npx expo start
 
 -----
 <p align="center">
-  <img src="waylens-app/assets/images/logo.png" width="400"/>
+  <img src="waylens-app/assets/images/app_logo.png" width="400"/>
 </p>
